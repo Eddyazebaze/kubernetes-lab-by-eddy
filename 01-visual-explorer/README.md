@@ -2,9 +2,41 @@
 
 Démo interactive pour comprendre Kubernetes visuellement (orientée DSI / managers).
 
-- Objectif : vulgariser sans perdre la rigueur
-- Public : DSI, responsables produits/plateforme, chefs de projet, non-tech curieux
-- Format : 100% front (HTML/CSS/JS), sans backend
+## Objectif
+Rendre Kubernetes concret en quelques minutes :
+- comprendre les rôles des composants principaux ;
+- visualiser la logique “Control Plane” vs “Workers” ;
+- naviguer sans jargon et sans prérequis techniques.
+
+## Public
+- DSI / managers / responsables produits & plateformes  
+- Chefs de projet / PMO / profils non-tech curieux  
+- Toute personne qui veut “voir” Kubernetes plutôt que lire 30 pages de doc
 
 ## Démo
-➡️ Lien à ajouter après activation GitHub Pages / Netlify.
+➡️ https://eddyazebaze.github.io/kubernetes-lab-by-eddy/
+
+## Ce que la démo contient
+- **Vue cluster simplifiée** : Control Plane + Worker Nodes
+- **Composants cliquables** : chaque élément affiche une explication claire
+- **Analogie métier** : pour ancrer le rôle de chaque brique
+- **Expérience fluide** : lecture simple, pensée pour une démo en rendez-vous
+
+## Comment l’utiliser
+### Option 1 : en ligne (recommandé)
+Ouvre le lien de démo ci-dessus et clique sur les composants.
+
+### Option 2 : en local
+1. Télécharge `index.html`
+2. Ouvre le fichier dans ton navigateur (Chrome/Edge)
+
+## Notes
+- Démo volontairement simplifiée : l’objectif est la compréhension, pas l’exhaustivité.
+- Aucun backend, aucune collecte de données.
+
+## Prochaine évolution (optionnelle)
+- Ajouter un mode “approfondissement” (sans perturber les non-tech) : Deployment, Service, Ingress.
+- Ajouter un glossaire très court “DSI-friendly”.
+
+---
+Projet Augmenté®
