@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubernetes Visual Explorer — Eddy AZEBAZE</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0a0e1a;--bg2:#111827;--card:#1a2235;--blue:#326CE5;--accent:#60a5fa;--green:#34d399;--yellow:#fbbf24;--red:#f87171;--text:#e2e8f0;--muted:#94a3b8;--border:#1e3a5f}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+
+  nav{display:flex;justify-content:space-between;align-items:center;padding:1rem 2rem;border-bottom:1px solid var(--border);background:rgba(10,14,26,0.97);position:sticky;top:0;z-index:200}
+  .logo{font-weight:800;font-size:.95rem;color:var(--accent)}
+  .logo span{color:var(--muted);font-weight:400;font-size:.8rem;margin-left:.4rem}
+  .nav-right{display:flex;align-items:center;gap:1rem}
+  .author-link{color:var(--muted);font-size:.78rem;text-decoration:none;border:1px solid var(--border);padding:.35rem .8rem;border-radius:6px;transition:all .2s}
+  .author-link:hover{border-color:var(--accent);color:var(--text)}
+
+  .tour-banner{background:linear-gradient(135deg,rgba(50,108,229,0.2),rgba(96,165,250,0.1));border-bottom:1px solid var(--border);padding:.8rem 2rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  .tour-step{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted);transition:color .3s;cursor:pointer}
+  .tour-step:hover{color:var(--text)}
+  .tour-step.active{color:var(--text);font-weight:600}
+  .tour-step.done{color:var(--green)}
+  .step-num{width:22px;height:22px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;transition:all .3s}
+  .tour-step.active .step-num{background:var(--blue);border-color:var(--blue);color:white}
+  .tour-step.done .step-num{background:var(--green);border-color:var(--green);color:white}
+  .tour-arrow{color:var(--border);font-size:.8rem}
+  .tour-skip{margin-left:auto;font-size:.75rem;color:var(--muted);cursor:pointer;text-decoration:underline}
+  .tour-skip:hover{color:var(--text)}
+
+  .hero{text-align:center;padding:2.5rem 1.5rem 1.5rem}
+  .hero h1{font-size:clamp(1.5rem,4vw,2.5rem);font-weight:800;margin-bottom:.6rem}
+  .hero h1 span{color:var(--blue)}
+  .hero p{color:var(--muted);max-width:520px;margin:0 auto;line-height:1.7;font-size:.9rem}
+
+  .info-panel{max-width:1100px;margin:1rem auto;padding:0 1.5rem}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.4rem;display:none;animation:fadeIn .3s ease}
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .panel-header{display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem}
+  .panel-icon{font-size:1.6rem}
+  .panel h3{color:var(--accent);font-size:1rem;font-weight:700}
+  .panel p{color:var(--muted);font-size:.88rem;line-height:1.7}
+  .analogy{background:rgba(50,108,229,0.08);border-left:3px solid var(--blue);padding:.8rem 1rem;border-radius:0 8px 8px 0;margin-top:.8rem;font-size:.85rem;color:var(--text);line-height:1.6}
+  .panel-nav{display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap}
+  .panel-btn{background:var(--bg);border:1px solid var(--border);color:var(--muted);padding:.4rem .9rem;border-radius:6px;font-size:.75rem;cursor:pointer;transition:all .2s}
+  .panel-btn:hover{border-color:var(--accent);color:var(--text)}
+  .panel-btn.next{background:var(--blue);border-color:var(--blue);color:white}
+
+  .cluster-wrap{max-width:1100px;margin:1rem auto;padding:0 1.5rem 2rem}
+  .cluster-box{background:var(--card);border:2px solid var(--border);border-radius:16px;padding:1.8rem;position:relative}
+  .cluster-label{position:absolute;top:-14px;left:24px;background:var(--blue);color:white;font-size:.72rem;font-weight:700;padding:.3rem .9rem;border-radius:999px;letter-spacing:1px;text-transform:uppercase}
+
+  .control-plane{background:rgba(50,108,229,0.07);border:1px dashed rgba(50,108,229,0.4);border-radius:12px;padding:1.3rem;margin-bottom:1.5rem;position:relative}
+  .zone-label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:1rem}
+  .cp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.8rem}
+  .cp-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+  .cp-card::after{content:'';position:absolute;inset:0;background:rgba(50,108,229,0.08);opacity:0;transition:opacity .2s}
+  .cp-card:hover{border-color:var(--blue);transform:translateY(-3px);box-shadow:0 8px 20px rgba(50,108,229,0.15)}
+  .cp-card:hover::after{opacity:1}
+  .cp-card.highlighted{border-color:var(--yellow);box-shadow:0 0 15px rgba(251,191,36,0.3);animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 10px rgba(251,191,36,0.3)}50%{box-shadow:0 0 20px rgba(251,191,36,0.6)}}
+  .cp-card .icon{font-size:1.6rem;margin-bottom:.3rem}
+  .cp-card h4{font-size:.75rem;font-weight:700;margin-bottom:.2rem}
+  .cp-card p{font-size:.65rem;color:var(--muted);line-height:1.3}
+
+  .nodes-zone{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem}
+  .node{background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.25);border-radius:12px;padding:1.1rem;transition:all .2s}
+  .node.highlighted{border-color:var(--yellow);box-shadow:0 0 15px rgba(251,191,36,0.2)}
+  .node-header{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
+  .node-status{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+  .node-name{font-size:.82rem;font-weight:700}
+  .node-meta{font-size:.68rem;color:var(--muted);margin-left:auto}
+
+  .res-bars{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.8rem}
+  .res-bar{display:flex;align-items:center;gap:.5rem;font-size:.65rem;color:var(--muted)}
+  .bar-track{flex:1;height:4px;background:var(--border);border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px;transition:width 1s ease}
+  .bar-fill.cpu{background:var(--accent)}
+  .bar-fill.ram{background:var(--green)}
+
+  .ns-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.75rem;margin-bottom:.7rem;cursor:pointer;transition:all .2s}
+  .ns-box:hover{border-color:var(--accent)}
+  .ns-box.highlighted{border-color:var(--yellow)}
+  .ns-header{display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem}
+  .ns-badge{background:rgba(96,165,250,0.15);color:var(--accent);font-size:.62rem;font-weight:700;padding:.15rem .45rem;border-radius:4px}
+  .ns-name{font-size:.78rem;font-weight:600}
+  .pods-row{display:flex;gap:.35rem;flex-wrap:wrap}
+  .pod{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:.35rem .55rem;font-size:.62rem;display:flex;align-items:center;gap:.3rem;cursor:pointer;transition:all .2s}
+  .pod:hover{border-color:var(--green);transform:scale(1.05)}
+  .pod.highlighted{border-color:var(--yellow);background:rgba(251,191,36,0.08)}
+  .pod-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .pod-dot.running{background:var(--green);animation:blink 2s infinite}
+  .pod-dot.pending{background:var(--yellow)}
+  .pod-dot.error{background:var(--red)}
+
+  .legend{max-width:1100px;margin:0 auto 2rem;padding:0 1.5rem;display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center}
+  .leg-item{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--muted)}
+  .leg-dot{width:7px;height:7px;border-radius:50%}
+  .leg-note{margin-left:auto;font-style:italic;font-size:.7rem;color:var(--border)}
+
+  footer{text-align:center;padding:1.8rem;color:var(--muted);font-size:.78rem;border-top:1px solid var(--border)}
+  footer a{color:var(--accent);text-decoration:none}
+
+  @media(max-width:600px){
+    nav{padding:.8rem 1rem;flex-wrap:wrap;gap:.5rem}
+    .hero{padding:1.5rem 1rem 1rem}
+    .cluster-wrap,.info-panel{padding:0 1rem 1.5rem}
+    .cluster-box{padding:1.2rem}
+    .cp-grid{grid-template-columns:repeat(2,1fr)}
+    .nodes-zone{grid-template-columns:1fr}
+    .tour-banner{padding:.7rem 1rem;gap:.5rem}
+    .tour-arrow{display:none}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">⎈ Kubernetes Visual Explorer <span>v2 · démo pédagogique</span></div>
+  <div class="nav-right">
+    <a href="https://www.linkedin.com/in/eddy-azebaze-pmp-cism" class="author-link" target="_blank">Eddy AZEBAZE →</a>
+  </div>
+</nav>
+
+<div class="tour-banner" id="tourBanner">
+  <div class="tour-step active" id="ts1" onclick="showPanel('default')"><div class="step-num">1</div>Le cluster</div>
+  <div class="tour-arrow">›</div>
+  <div class="tour-step" id="ts2" onclick="showPanel('apiserver')"><div class="step-num">2</div>Control Plane</div>
+  <div class="tour-arrow">›</div>
+  <div class="tour-step" id="ts3" onclick="showPanel('node')"><div class="step-num">3</div>Les Nodes</div>
+  <div class="tour-arrow">›</div>
+  <div class="tour-step" id="ts4" onclick="showPanel('ns')"><div class="step-num">4</div>Namespaces</div>
+  <div class="tour-arrow">›</div>
+  <div class="tour-step" id="ts5" onclick="showPanel('pod')"><div class="step-num">5</div>Les Pods</div>
+  <span class="tour-skip" onclick="skipTour()">Passer le guide</span>
+</div>
+
+<div class="hero">
+  <h1>Comprendre <span>Kubernetes</span> visuellement</h1>
+  <p>Suis le guide ou clique librement sur chaque composant pour comprendre son rôle, en langage clair, sans jargon.</p>
+</div>
+
+<div class="info-panel">
+  <div class="panel active" id="panel-default">
+    <div class="panel-header"><div class="panel-icon">👆</div><h3>Commence ici : qu'est-ce qu'un cluster Kubernetes ?</h3></div>
+    <p>Un cluster Kubernetes c'est un ensemble de serveurs (appelés Nodes) qui travaillent ensemble pour faire tourner tes applications. Il y a un cerveau qui coordonne tout (le Control Plane) et des bras qui exécutent (les Worker Nodes).</p>
+    <div class="analogy">💡 Analogie : C'est comme un restaurant. Le Control Plane c'est la cuisine et le chef. Les Nodes ce sont les serveurs en salle. Les Pods ce sont les plats servis aux clients.</div>
+    <div class="panel-nav"><button class="panel-btn next" onclick="showPanel('apiserver')">Suivant : le Control Plane →</button></div>
+  </div>
+  <div class="panel" id="panel-apiserver">
+    <div class="panel-header"><div class="panel-icon">🔌</div><h3>API Server : le réceptionniste du cluster</h3></div>
+    <p>Tout passe par lui. Quand tu tapes une commande kubectl, c'est l'API Server qui la reçoit, la valide, et la transmet au bon endroit. Personne ne peut parler directement à un composant sans passer par lui.</p>
+    <div class="analogy">💡 Analogie : C'est le standard téléphonique d'une grande entreprise. Tout transite par lui, rien ne passe en direct.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('default')">← Retour</button>
+      <button class="panel-btn next" onclick="showPanel('etcd')">Suivant : etcd →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-etcd">
+    <div class="panel-header"><div class="panel-icon">🗄️</div><h3>etcd : la mémoire du cluster</h3></div>
+    <p>C'est la base de données de Kubernetes. Elle stocke l'état de tout ce qui tourne : quels pods sont actifs, quels namespaces existent, qui a le droit de faire quoi. Si etcd disparaît, le cluster perd la mémoire.</p>
+    <div class="analogy">💡 Analogie : C'est le registre notarial du cluster. Tout ce qui existe y est écrit noir sur blanc.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('apiserver')">← Retour</button>
+      <button class="panel-btn next" onclick="showPanel('scheduler')">Suivant : Scheduler →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-scheduler">
+    <div class="panel-header"><div class="panel-icon">📅</div><h3>Scheduler : le planificateur</h3></div>
+    <p>Quand tu demandes à déployer une application, le Scheduler décide sur quel Node elle va tourner, en fonction des ressources disponibles : CPU, mémoire, contraintes.</p>
+    <div class="analogy">💡 Analogie : C'est le responsable logistique qui décide dans quelle salle placer chaque équipe selon la taille et les besoins.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('etcd')">← Retour</button>
+      <button class="panel-btn next" onclick="showPanel('controller')">Suivant : Controller →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-controller">
+    <div class="panel-header"><div class="panel-icon">🔄</div><h3>Controller Manager : le gardien de l'état</h3></div>
+    <p>Il surveille en permanence que la réalité correspond à ce que tu as demandé. Si tu veux 3 pods et qu'il en reste 2, il en recrée un automatiquement. Sans lui, rien ne se répare tout seul.</p>
+    <div class="analogy">💡 Analogie : C'est le chef de projet qui vérifie que le plan est respecté et qui relance les actions qui ont dérapé.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('scheduler')">← Retour</button>
+      <button class="panel-btn next" onclick="showPanel('node')">Suivant : les Nodes →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-node">
+    <div class="panel-header"><div class="panel-icon">🖥️</div><h3>Worker Node : le serveur qui fait tourner tes apps</h3></div>
+    <p>Un Node c'est un serveur physique ou virtuel. C'est là que tes applications tournent concrètement. Chaque Node a du CPU et de la RAM, consommés par les Pods qui y sont déployés. Les barres montrent la charge en temps réel.</p>
+    <div class="analogy">💡 Analogie : C'est un étage d'un immeuble de bureaux. Plusieurs équipes (namespaces) peuvent y travailler, chacune dans sa zone.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('controller')">← Retour</button>
+      <button class="panel-btn next" onclick="showPanel('ns')">Suivant : les Namespaces →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-ns">
+    <div class="panel-header"><div class="panel-icon">🗂️</div><h3>Namespace : la zone d'isolation</h3></div>
+    <p>Un namespace permet de séparer les environnements au sein du même cluster. Dev, prod, monitoring : chacun dans son espace, avec ses propres règles d'accès, sans interférer avec les autres.</p>
+    <div class="analogy">💡 Analogie : Ce sont les étages d'un immeuble. Chaque équipe a son étage, ses règles, son budget, mais ils partagent le même bâtiment.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('node')">← Retour</button>
+      <button class="panel-btn next" onclick="showPanel('pod')">Suivant : les Pods →</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-pod">
+    <div class="panel-header"><div class="panel-icon">📦</div><h3>Pod : la plus petite unité déployable</h3></div>
+    <p>Un Pod contient une ou plusieurs applications (containers). C'est ce qui tourne concrètement sur un Node. Les points colorés indiquent l'état : vert pour running, orange pour en attente, rouge pour erreur.</p>
+    <div class="analogy">💡 Analogie : C'est un bureau individuel dans un open space. Un employé y travaille avec ses outils propres. Si le bureau est détruit, Kubernetes en recrée un automatiquement.</div>
+    <div class="panel-nav">
+      <button class="panel-btn" onclick="showPanel('ns')">← Retour</button>
+      <button class="panel-btn next" style="background:var(--green);border-color:var(--green)" onclick="finishTour()">Terminer le guide ✓</button>
+    </div>
+  </div>
+  <div class="panel" id="panel-done">
+    <div class="panel-header"><div class="panel-icon">🎉</div><h3>Tu connais maintenant les bases de Kubernetes !</h3></div>
+    <p>Tu viens de parcourir les 6 composants fondamentaux d'un cluster Kubernetes. Continue à explorer librement en cliquant sur les éléments du cluster ci-dessous.</p>
+    <div class="analogy">💡 Prochaine étape : installe Docker Desktop sur ta machine et fais tourner un vrai cluster en local. C'est gratuit et ça prend 20 minutes.</div>
+    <div class="panel-nav">
+      <button class="panel-btn next" onclick="showPanel('default');resetTour()">Recommencer le guide</button>
+    </div>
+  </div>
+</div>
+
+<div class="cluster-wrap">
+  <div class="cluster-box">
+    <div class="cluster-label">⎈ Cluster Kubernetes · simulation pédagogique</div>
+
+    <div class="control-plane" id="cpZone">
+      <div class="zone-label">🧠 Control Plane · Le cerveau</div>
+      <div class="cp-grid">
+        <div class="cp-card" id="card-apiserver" onclick="showPanel('apiserver')">
+          <div class="icon">🔌</div><h4>API Server</h4><p>Point d'entrée de toutes les commandes</p>
+        </div>
+        <div class="cp-card" id="card-etcd" onclick="showPanel('etcd')">
+          <div class="icon">🗄️</div><h4>etcd</h4><p>Base de données de l'état du cluster</p>
+        </div>
+        <div class="cp-card" id="card-scheduler" onclick="showPanel('scheduler')">
+          <div class="icon">📅</div><h4>Scheduler</h4><p>Décide où placer chaque application</p>
+        </div>
+        <div class="cp-card" id="card-controller" onclick="showPanel('controller')">
+          <div class="icon">🔄</div><h4>Controller Manager</h4><p>Maintient l'état souhaité en permanence</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone-label">⚙️ Worker Nodes · Les serveurs qui font tourner tes apps</div>
+    <div class="nodes-zone">
+      <div class="node" id="node1" onclick="showPanel('node')">
+        <div class="node-header">
+          <div class="node-status"></div>
+          <div class="node-name">node-01</div>
+          <div class="node-meta" id="meta1">En ligne</div>
+        </div>
+        <div class="res-bars">
+          <div class="res-bar"><span>CPU</span><div class="bar-track"><div class="bar-fill cpu" id="cpu1" style="width:42%"></div></div><span id="cpuv1">42%</span></div>
+          <div class="res-bar"><span>RAM</span><div class="bar-track"><div class="bar-fill ram" id="ram1" style="width:61%"></div></div><span id="ramv1">61%</span></div>
+        </div>
+        <div class="ns-box" onclick="event.stopPropagation();showPanel('ns')">
+          <div class="ns-header"><span class="ns-badge">NS</span><span class="ns-name">production</span></div>
+          <div class="pods-row">
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>api-pod-1</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>api-pod-2</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>auth-pod-1</div>
+          </div>
+        </div>
+        <div class="ns-box" onclick="event.stopPropagation();showPanel('ns')">
+          <div class="ns-header"><span class="ns-badge">NS</span><span class="ns-name">monitoring</span></div>
+          <div class="pods-row">
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>prometheus</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>grafana</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="node" id="node2" onclick="showPanel('node')">
+        <div class="node-header">
+          <div class="node-status"></div>
+          <div class="node-name">node-02</div>
+          <div class="node-meta" id="meta2">En ligne</div>
+        </div>
+        <div class="res-bars">
+          <div class="res-bar"><span>CPU</span><div class="bar-track"><div class="bar-fill cpu" id="cpu2" style="width:28%"></div></div><span id="cpuv2">28%</span></div>
+          <div class="res-bar"><span>RAM</span><div class="bar-track"><div class="bar-fill ram" id="ram2" style="width:45%"></div></div><span id="ramv2">45%</span></div>
+        </div>
+        <div class="ns-box" onclick="event.stopPropagation();showPanel('ns')">
+          <div class="ns-header"><span class="ns-badge">NS</span><span class="ns-name">development</span></div>
+          <div class="pods-row">
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>front-pod-1</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot pending"></div>front-pod-2</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot error"></div>db-pod-1</div>
+          </div>
+        </div>
+        <div class="ns-box" onclick="event.stopPropagation();showPanel('ns')">
+          <div class="ns-header"><span class="ns-badge">NS</span><span class="ns-name">staging</span></div>
+          <div class="pods-row">
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>api-pod-1</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>worker-pod-1</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="node" id="node3" onclick="showPanel('node')">
+        <div class="node-header">
+          <div class="node-status"></div>
+          <div class="node-name">node-03</div>
+          <div class="node-meta" id="meta3">En ligne</div>
+        </div>
+        <div class="res-bars">
+          <div class="res-bar"><span>CPU</span><div class="bar-track"><div class="bar-fill cpu" id="cpu3" style="width:15%"></div></div><span id="cpuv3">15%</span></div>
+          <div class="res-bar"><span>RAM</span><div class="bar-track"><div class="bar-fill ram" id="ram3" style="width:30%"></div></div><span id="ramv3">30%</span></div>
+        </div>
+        <div class="ns-box" onclick="event.stopPropagation();showPanel('ns')">
+          <div class="ns-header"><span class="ns-badge">NS</span><span class="ns-name">security</span></div>
+          <div class="pods-row">
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>gatekeeper</div>
+            <div class="pod" onclick="event.stopPropagation();showPanel('pod')"><div class="pod-dot running"></div>vault-pod</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Running</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--yellow)"></div>Pending</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Error</div>
+  <div class="leg-note">Simulation dynamique à titre pédagogique</div>
+</div>
+
+<footer>
+  Créé par <a href="https://www.linkedin.com/in/eddy-azebaze-pmp-cism" target="_blank">Eddy AZEBAZE</a> · PMP® · CISM® · Projet Augmenté® · Inspiré de <a href="https://github.com/gitavk/KubeTile" target="_blank">KubeTile</a>
+</footer>
+
+<script>
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('panel-' + id);
+  if (el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  updateTourStep(id);
+  highlightComponent(id);
+}
+
+function updateTourStep(id) {
+  document.querySelectorAll('.tour-step').forEach(s => s.classList.remove('active','done'));
+  const stepMap = {default:1,apiserver:2,etcd:2,scheduler:2,controller:2,node:3,ns:4,pod:5};
+  const active = stepMap[id] || 1;
+  ['ts1','ts2','ts3','ts4','ts5'].forEach((ts, i) => {
+    const el = document.getElementById(ts);
+    if (!el) return;
+    if (i+1 < active) el.classList.add('done');
+    else if (i+1 === active) el.classList.add('active');
+  });
+}
+
+function highlightComponent(id) {
+  document.querySelectorAll('.cp-card,.node,.ns-box,.pod').forEach(el => el.classList.remove('highlighted'));
+  const map = {apiserver:'card-apiserver',etcd:'card-etcd',scheduler:'card-scheduler',controller:'card-controller',node:'node1'};
+  if (map[id]) { const el = document.getElementById(map[id]); if(el) el.classList.add('highlighted'); }
+}
+
+function finishTour() {
+  document.querySelectorAll('.tour-step').forEach(s => s.classList.add('done'));
+  showPanel('done');
+}
+
+function skipTour() {
+  document.getElementById('tourBanner').style.display = 'none';
+}
+
+function resetTour() {
+  document.querySelectorAll('.tour-step').forEach(s => s.classList.remove('active','done'));
+  document.getElementById('ts1').classList.add('active');
+}
+
+function randBetween(min, max) { return Math.floor(Math.random()*(max-min)+min); }
+function updateMetrics() {
+  [{cpu:'cpu1',ram:'ram1',cpuv:'cpuv1',ramv:'ramv1',cMin:35,cMax:60,rMin:55,rMax:75},
+   {cpu:'cpu2',ram:'ram2',cpuv:'cpuv2',ramv:'ramv2',cMin:20,cMax:45,rMin:38,rMax:58},
+   {cpu:'cpu3',ram:'ram3',cpuv:'cpuv3',ramv:'ramv3',cMin:10,cMax:25,rMin:25,rMax:40}
+  ].forEach(n => {
+    const c = randBetween(n.cMin,n.cMax), r = randBetween(n.rMin,n.rMax);
+    document.getElementById(n.cpu).style.width = c+'%';
+    document.getElementById(n.ram).style.width = r+'%';
+    document.getElementById(n.cpuv).textContent = c+'%';
+    document.getElementById(n.ramv).textContent = r+'%';
+  });
+}
+setInterval(updateMetrics, 3000);
+</script>
+</body>
+</html>
