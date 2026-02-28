@@ -1,2 +1,2 @@
 # kubernetes-lab-by-eddy
-Kubernetes demos &amp; assets for DSI-friendly learning. Projet Augmenté®
+Rendre Kubernetes concret : démos interactives, manifests essentiels, guides terrain. Projet Augmenté®
